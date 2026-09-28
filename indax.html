@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MyStore</title>
+<style>
+:root{
+  --bg:#f4f5f7; --card:#fff; --text:#1a1a1a; --sub:#666; --accent:#0b8457; --border:#e2e4e8;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#121316; --card:#1c1e22; --text:#eee; --sub:#9aa0a6; --border:#2c2f34; }
+}
+:root[data-theme="dark"]{ --bg:#121316; --card:#1c1e22; --text:#eee; --sub:#9aa0a6; --border:#2c2f34; }
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--accent);color:#fff;padding:14px 16px;z-index:5}
+header h1{margin:0 0 10px;font-size:20px}
+.search{display:flex;gap:8px}
+.search input,.search select{flex:1;padding:10px 12px;border-radius:10px;border:none;font-size:15px}
+.cats{display:flex;gap:8px;overflow-x:auto;padding:10px 16px;border-bottom:1px solid var(--border)}
+.cats button{white-space:nowrap;border:1px solid var(--border);background:var(--card);color:var(--text);padding:6px 14px;border-radius:20px;font-size:13px}
+.cats button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+main{padding:12px 16px 90px;max-width:700px;margin:0 auto}
+.grid{display:grid;gap:12px}
+.app-card{display:flex;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;align-items:center}
+.icon{width:56px;height:56px;border-radius:14px;background:var(--border);object-fit:cover;flex-shrink:0}
+.info{flex:1;min-width:0}
+.info b{display:block;font-size:15px}
+.info .dev{color:var(--sub);font-size:12px}
+.info .desc{color:var(--sub);font-size:12px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta{font-size:11px;color:var(--sub);margin-top:3px}
+.dl{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:13px;flex-shrink:0}
+.fab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--accent);color:#fff;border:none;width:56px;height:56px;border-radius:50%;font-size:26px;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:20}
+.sheet-bg.open{display:flex}
+.sheet{background:var(--card);width:100%;max-height:85vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+.sheet h2{margin-top:0;font-size:18px}
+.sheet label{display:block;font-size:13px;color:var(--sub);margin:10px 0 4px}
+.sheet input,.sheet textarea,.sheet select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px}
+.sheet textarea{resize:vertical;min-height:60px}
+.row2{display:flex;gap:10px}
+.row2 button{flex:1;padding:12px;border-radius:10px;border:none;font-size:14px}
+.btn-primary{background:var(--accent);color:#fff;margin-top:14px}
+.btn-cancel{background:var(--border);color:var(--text)}
+.hint{font-size:11px;color:var(--sub);margin-top:8px}
+.filebtn{display:block;width:100%;padding:12px;border-radius:10px;border:1px dashed var(--accent);background:var(--bg);color:var(--accent);font-size:14px;text-align:center;cursor:pointer}
+.empty{text-align:center;color:var(--sub);padding:40px 20px;font-size:14px}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:30;display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>📦 MyStore</h1>
+  <div class="search">
+    <input id="q" placeholder="অ্যাপ খুঁজুন...">
+  </div>
+</header>
+<div class="cats" id="cats"></div>
+<main><div class="grid" id="grid"></div></main>
+<button class="fab" onclick="openSheet()">+</button>
+
+<div class="sheet-bg" id="sheetBg" onclick="if(event.target===this)closeSheet()">
+  <div class="sheet">
+    <h2>নতুন অ্যাপ আপলোড</h2>
+    <label>অ্যাপের নাম</label><input id="fName">
+    <label>ডেভেলপার</label><input id="fDev">
+    <label>ক্যাটাগরি</label>
+    <select id="fCat"><option>Tools</option><option>Games</option><option>Education</option><option>Entertainment</option><option>Other</option></select>
+    <label>বিবরণ</label><textarea id="fDesc"></textarea>
+    <label>আইকন (ছবি, ঐচ্ছিক)</label>
+    <label class="filebtn" id="iconBtnLabel" for="fIcon">📷 ছবি বাছাই করুন</label>
+    <input type="file" id="fIcon" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0">
+    <label>ফাইল</label>
+    <label class="filebtn" id="fileBtnLabel" for="fFile">📄 ফাইল বাছাই করুন</label>
+    <input type="file" id="fFile" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.csv,.json,.md,.txt" style="position:absolute;width:1px;height:1px;opacity:0">
+    <div class="hint">⚠️ প্ল্যাটফর্মের সীমাবদ্ধতার কারণে শুধু PDF, ছবি, ভিডিও ও কিছু টেক্সট ফাইল আপলোড করা যায় — আসল .apk ফাইল সাপোর্ট করে না।</div>
+    <div class="row2">
+      <button class="btn-cancel" onclick="closeSheet()">বাতিল</button>
+      <button class="btn-primary" onclick="submitApp()">আপলোড</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let db, assets, downloadsCap, apps=[], activeCat="সব";
+const CATS=["সব","Tools","Games","Education","Entertainment","Other"];
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2200);}
+function openSheet(){document.getElementById('sheetBg').classList.add('open');}
+function closeSheet(){document.getElementById('sheetBg').classList.remove('open');}
+
+function renderCats(){
+  const el=document.getElementById('cats');
+  el.innerHTML='';
+  CATS.forEach(c=>{
+    const b=document.createElement('button');
+    b.textContent=c; if(c===activeCat)b.classList.add('active');
+    b.onclick=()=>{activeCat=c;renderCats();render();};
+    el.appendChild(b);
+  });
+}
+
+function render(){
+  const q=document.getElementById('q').value.toLowerCase();
+  const grid=document.getElementById('grid');
+  let list=apps.filter(a=>(activeCat==="সব"||a.category===activeCat) && a.name.toLowerCase().includes(q));
+  grid.innerHTML='';
+  if(!list.length){grid.innerHTML='<div class="empty">কোনো অ্যাপ পাওয়া যায়নি। + বাটনে চেপে প্রথম অ্যাপ আপলোড করুন।</div>';return;}
+  list.forEach(a=>{
+    const card=document.createElement('div');
+    card.className='app-card';
+    card.innerHTML=`
+      <img class="icon" src="${a.iconUrl||''}" onerror="this.style.background='var(--border)'">
+      <div class="info">
+        <b>${escapeHtml(a.name)}</b>
+        <div class="dev">${escapeHtml(a.developer||'Unknown')} · ${a.category}</div>
+        <div class="desc">${escapeHtml(a.description||'')}</div>
+        <div class="meta">⬇ ${a.downloads||0} ডাউনলোড</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="dl">ডাউনলোড</button>
+        <button class="dl" style="background:var(--border);color:var(--text)">শেয়ার</button>
+      </div>`;
+    const btns=card.querySelectorAll('.dl');
+    btns[0].onclick=()=>download(a);
+    btns[1].onclick=()=>shareApp(a);
+    grid.appendChild(card);
+  });
+}
+function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+async function download(a){
+  if(!a.fileUrl){toast('ফাইল নেই');return;}
+  if(!downloadsCap){toast('ডাউনলোড ফিচার লোড হচ্ছে, একটু পর চেষ্টা করুন');return;}
+  toast('ফাইল প্রস্তুত হচ্ছে...');
+  try{
+    const resp=await fetch(a.fileUrl);
+    const blob=await resp.blob();
+    const res=await downloadsCap.save({filename:a.fileName||a.name, data:blob});
+    if(res.status==='saved'){
+      toast('ডাউনলোড হয়েছে!');
+      try{ await db.doc('apps/'+a.id).update({downloads:(a.downloads||0)+1}); }catch(e){}
+    }
+  }catch(e){
+    if(e && e.code==='declined'){ toast('বাতিল করা হয়েছে'); }
+    else { toast('ডাউনলোড ব্যর্থ: '+(e && e.code || 'error')); }
+  }
+}
+
+async function shareApp(a){
+  const url=location.href.split('#')[0]+'#app='+a.id;
+  if(navigator.share){
+    try{ await navigator.share({title:a.name, text:a.description||a.name, url}); }
+    catch(e){ /* user cancelled */ }
+  }else{
+    try{ await navigator.clipboard.writeText(url); toast('লিংক কপি হয়েছে'); }
+    catch(e){ toast('কপি ব্যর্থ হয়েছে'); }
+  }
+}
+
+async function submitApp(){
+  const name=document.getElementById('fName').value.trim();
+  const dev=document.getElementById('fDev').value.trim();
+  const cat=document.getElementById('fCat').value;
+  const desc=document.getElementById('fDesc').value.trim();
+  const iconFile=document.getElementById('fIcon').files[0];
+  const mainFile=document.getElementById('fFile').files[0];
+  if(!name||!mainFile){toast('নাম ও ফাইল আবশ্যক');return;}
+  if(!assets){toast('আপলোড ফিচার এখন লোড হচ্ছে, একটু পর চেষ্টা করুন');return;}
+  toast('আপলোড হচ্ছে...');
+  try{
+    let iconId=null;
+    if(iconFile) iconId=(await assets.upload(iconFile)).id;
+    const fileRes=await assets.upload(mainFile);
+    await db.collection('apps').add({
+      name,developer:dev,category:cat,description:desc,
+      iconId, fileId:fileRes.id, fileName:mainFile.name, downloads:0, createdAt:Date.now()
+    });
+    toast('আপলোড সম্পন্ন!');
+    closeSheet();
+    document.getElementById('fName').value='';document.getElementById('fDev').value='';
+    document.getElementById('fDesc').value='';document.getElementById('fIcon').value='';document.getElementById('fFile').value='';
+    document.getElementById('iconBtnLabel').textContent='📷 ছবি বাছাই করুন';
+    document.getElementById('fileBtnLabel').textContent='📄 ফাইল বাছাই করুন';
+  }catch(e){ toast('ব্যর্থ হয়েছে: '+(e.code||e.message||'error')); }
+}
+
+async function init(){
+  renderCats(); render();
+  try{ db=await window.claude.use('db'); }catch(e){}
+  try{ assets=await window.claude.use('assets'); }catch(e){}
+  try{ downloadsCap=await window.claude.use('downloads'); }catch(e){}
+  if(!db){ toast('ডাটাবেস লোড করা যায়নি'); return; }
+  db.collection('apps').orderBy('createdAt','desc').onSnapshot(snap=>{
+    apps=snap.docs.map(d=>{
+      const v=d.data();
+      return {id:d.id, ...v,
+        iconUrl: v.iconId ? '/_blob/'+v.iconId : '',
+        fileUrl: v.fileId ? '/_blob/'+v.fileId : ''};
+    });
+    render();
+  });
+}
+document.getElementById('q').addEventListener('input',render);
+document.getElementById('fIcon').addEventListener('change',e=>{
+  document.getElementById('iconBtnLabel').textContent = e.target.files[0] ? '✅ '+e.target.files[0].name : '📷 ছবি বাছাই করুন';
+});
+document.getElementById('fFile').addEventListener('change',e=>{
+  document.getElementById('fileBtnLabel').textContent = e.target.files[0] ? '✅ '+e.target.files[0].name : '📄 ফাইল বাছাই করুন';
+});
+init();
+</script>
+</body>
+</html>
